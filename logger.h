@@ -1,11 +1,13 @@
 #pragma once
 
 #if defined(__cplusplus)
-extern "C" {            // Prevents name mangling of functions
+extern "C" { // Prevents name mangling of functions
 #endif
 
 // quick macro to use the automatic __FILE__ and __LINE__ gcc defines
 #define llog(level, format, ...) logger(level, __FILE_NAME__, __LINE__, __PRETTY_FUNCTION__, format __VA_OPT__(, ) __VA_ARGS__)
+
+#define BUFFER_SIZE 8196
 
 typedef enum : char {
 	LOG_FATAL,
@@ -16,11 +18,40 @@ typedef enum : char {
 } logLevel;
 
 /**
+ * A pluggable function to use inside the logging process
+ *
+ * @param[in] `buffer` the start of char buffer that will be printed at the end of the process
+ * @param[in] `count` the last position where data was written to te buffer.
+ * This can (and should) be modified in case data is added to the buffer, to specify where to continue writing data
+ *
+ * @return if the operation was successfull, disregarded for now
+ */
+typedef bool (*plug_print_func)(char *buffer, int *count);
+
+/**
  * Set the local log_level variable to prevent any log message 'lower' than the one selected from being printed
  *
- * @param[in] ll the new log level to use
+ * @param[in] `ll` the new log level to use
  */
 void set_log_level(logLevel ll);
+
+/**
+ * Sets the function to execute before the final printf to stdout and before the flush
+ * If nothing is set nothing get executed
+ * nullptr or NULL can be set to remove the previously entered function
+ *
+ * @param[in] `fun` the function to use from this point on
+ */
+void set_post_print_func(plug_print_func fun);
+
+/**
+ * Sets the function to execute before anything gets written to the buffer
+ * If nothing is set nothing get executed
+ * nullptr or NULL can be set to remove the previously entered function
+ *
+ * @param[in] `fun` the function to use from this point on
+ */
+void set_pre_print_func(plug_print_func fun);
 
 /**
  * logs a message to the standard output, with info about log level, file, line number, and function name
@@ -30,12 +61,12 @@ void set_log_level(logLevel ll);
  * internally it keeps a local buffer where the printf functions output to, then a single call to normal printf is executed and then an fflush(stdout)
  * this makes it reasonably thread safe
  *
- * @param[in] ll the log level of the message
- * @param[in] file_name the file to show at the log message
- * @param[in] line_num the line number to show in the log message
- * @param[in] function_name the function name to show in the log message
- * @param[in] format the orintf format to use when printing the variadic arguments
- * @param[in] ... the variadic arguments to pass to printf
+ * @param[in] `ll` the log level of the message
+ * @param[in] `file_name` the file to show at the log message
+ * @param[in] `line_num` the line number to show in the log message
+ * @param[in] `function_name` the function name to show in the log message
+ * @param[in] `format` the orintf format to use when printing the variadic arguments
+ * @param[in] `...` the variadic arguments to pass to printf
  *
  */
 void logger(const logLevel ll, const char *file_name, const unsigned line_num, const char *function_name, const char *format, ...);

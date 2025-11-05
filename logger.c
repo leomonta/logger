@@ -13,13 +13,21 @@
 #define GRY   "\x1B[090m"
 #define RESET "\x1B[0m"
 
-#define INTERNAL_BUFFER_SIZE 8196
-
 // default log level if not specified via 'set_log_level'
-static char log_level = LOG_DEBUG;
+static char            log_level = LOG_DEBUG;
+static plug_print_func post      = nullptr;
+static plug_print_func pre       = nullptr;
 
 void set_log_level(logLevel ll) {
 	log_level = ll;
+}
+
+void set_post_print_func(plug_print_func fun) {
+	post = fun;
+}
+
+void set_pre_print_func(plug_print_func fun) {
+	pre = fun;
 }
 
 void logger(const logLevel ll, const char *file_name, const unsigned line_num, const char *function_name, const char *format, ...) {
@@ -31,7 +39,7 @@ void logger(const logLevel ll, const char *file_name, const unsigned line_num, c
 
 	// stright up rawdogging it
 	// needs this to prevent multiple threads to clutter stdout
-	char log_buffer[INTERNAL_BUFFER_SIZE];
+	char log_buffer[BUFFER_SIZE];
 
 	va_list args;
 	va_start(args, format);
@@ -57,12 +65,23 @@ void logger(const logLevel ll, const char *file_name, const unsigned line_num, c
 		break;
 	}
 
-	//
+	int count = 0;
+	if (pre != nullptr && pre != NULL) {
+		pre(log_buffer, &count);
+	}
+
 	// [ DEBUG ] server.cpp:167  in void start(runtimeIn    [
-	// this should return always
-	auto printed_chars = snprintf(log_buffer, INTERNAL_BUFFER_SIZE, "%s %-10.10s:%-4d " GRY "in" RESET " %-20.20s    " RESET, prefix, file_name, line_num, function_name);
-	vsnprintf(log_buffer + printed_chars, (size_t)(INTERNAL_BUFFER_SIZE - printed_chars), format, args);
-	printf("%s", log_buffer);
+	// this should return always the same value
+	count += snprintf(log_buffer + count, (size_t)(BUFFER_SIZE - count), "%s %-10.10s:%-4d " GRY "in" RESET " %-20.20s    " RESET, prefix, file_name, line_num, function_name);
+	count += vsnprintf(log_buffer + count, (size_t)(BUFFER_SIZE - count), format, args);
+
+	if (post != nullptr && post != NULL) {
+		post(log_buffer, &count);
+	}
+	if (count > BUFFER_SIZE) {
+		count = BUFFER_SIZE;
+	}
+	printf("%*s", count, log_buffer);
 	fflush(stdout); // ensure printing even with no \n
 
 	va_end(args);
