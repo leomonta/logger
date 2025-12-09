@@ -4,6 +4,12 @@
 extern "C" { // Prevents name mangling of functions
 #endif
 
+#ifdef __GNUC__
+#      define FORMAT __attribute__((format(printf, 5, 6)))
+#else
+#      define FORMAT
+#endif
+
 // quick macro to use the automatic __FILE__ and __LINE__ gcc defines
 #define llog(level, format, ...) logger(level, __FILE_NAME__, __LINE__, __PRETTY_FUNCTION__, format __VA_OPT__(, ) __VA_ARGS__)
 
@@ -69,7 +75,7 @@ void set_pre_print_func(plug_print_func fun);
  * @param[in] `...` the variadic arguments to pass to printf
  *
  */
-void logger(const logLevel ll, const char *file_name, const unsigned line_num, const char *function_name, const char *format, ...);
+void logger(const logLevel ll, const char *file_name, const unsigned line_num, const char *function_name, const char *format, ...) FORMAT;
 
 #if defined(__cplusplus)
 }
