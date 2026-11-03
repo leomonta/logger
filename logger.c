@@ -81,7 +81,7 @@ void logger(const logLevel ll, const char *file_name, const unsigned line_num, c
 	if (count > BUFFER_SIZE) {
 		count = BUFFER_SIZE;
 	}
-	printf("%*s", count, log_buffer);
+	printf("%.*s", count, log_buffer);
 	fflush(stdout); // ensure printing even with no \n
 
 	va_end(args);
