@@ -1,26 +1,21 @@
 compiler:
-  target: exe
+  target: static
   compiler_style: gcc
   compiler_exe: gcc
   linker_exe: ar
 
 directories:
   project_dir: .
-  exe_path_name: bin/lib.a
+  exe_path_name: bin/liblogger.a
   include_dirs: [.]
   source_dirs: [.]
   temp_dir: obj
 
 default:
   linker_args: rcs
-  scripts:
-    post: rename
 
 debug:
-  compiler_args: -g3 -std=c2x -Wall -Wextra -Wconversion -fsanitize=leak -fsanitize=address
-
-analyze:
   compiler_args: -g3 -std=c2x -Wall -Wextra -Wconversion -fanalyzer
 
 release:
-  compiler_args: -Ofast -std=c2x
+  compiler_args: -O2 -std=c2x

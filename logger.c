@@ -14,9 +14,9 @@
 #define RESET "\x1B[0m"
 
 // default log level if not specified via 'set_log_level'
-static char            log_level = LOG_DEBUG;
-static plug_print_func post      = nullptr;
-static plug_print_func pre       = nullptr;
+static _Atomic char            log_level = LOG_DEBUG;
+static _Atomic plug_print_func post      = nullptr;
+static _Atomic plug_print_func pre       = nullptr;
 
 void set_log_level(logLevel ll) {
 	log_level = ll;
@@ -37,9 +37,9 @@ void logger(const logLevel ll, const char *file_name, const unsigned line_num, c
 		return;
 	}
 
-	// stright up rawdogging it
+	// straight up rawdogging it
 	// needs this to prevent multiple threads to clutter stdout
-	char log_buffer[BUFFER_SIZE];
+	char log_buffer[LLOG_BUFFER_SIZE];
 
 	va_list args;
 	va_start(args, format);
@@ -65,23 +65,26 @@ void logger(const logLevel ll, const char *file_name, const unsigned line_num, c
 		break;
 	}
 
-	int count = 0;
-	if (pre != nullptr && pre != NULL) {
-		pre(log_buffer, &count);
+	unsigned long count = 0;
+	auto l_pre = pre;
+	if (l_pre != nullptr && l_pre != NULL) {
+		l_pre(log_buffer, &count);
 	}
 
 	// [ DEBUG ] server.cpp:167  in void start(runtimeIn    [
 	// this should return always the same value
-	count += snprintf(log_buffer + count, (size_t)(BUFFER_SIZE - count), "%s %-10.10s:%-4d " GRY "in" RESET " %-20.20s    " RESET, prefix, file_name, line_num, function_name);
-	count += vsnprintf(log_buffer + count, (size_t)(BUFFER_SIZE - count), format, args);
+	count = count > LLOG_BUFFER_SIZE ? LLOG_BUFFER_SIZE : count;
+	count += (unsigned long)(snprintf(log_buffer + count, LLOG_BUFFER_SIZE - count, "%s %-10.10s:%-4u " GRY "in" RESET " %-20.20s    " RESET, prefix, file_name, line_num, function_name));
+	count = count > LLOG_BUFFER_SIZE ? LLOG_BUFFER_SIZE : count;
+	count += (unsigned long)(vsnprintf(log_buffer + count, LLOG_BUFFER_SIZE - count, format, args));
+	count = count > LLOG_BUFFER_SIZE ? LLOG_BUFFER_SIZE : count;
 
-	if (post != nullptr && post != NULL) {
-		post(log_buffer, &count);
+	auto l_post = post;
+	if (l_post != nullptr && l_post != NULL) {
+		l_post(log_buffer, &count);
 	}
-	if (count > BUFFER_SIZE) {
-		count = BUFFER_SIZE;
-	}
-	printf("%.*s", count, log_buffer);
+	count = count > LLOG_BUFFER_SIZE ? LLOG_BUFFER_SIZE : count;
+	printf("%.*s", (int)count, log_buffer);
 	fflush(stdout); // ensure printing even with no \n
 
 	va_end(args);
