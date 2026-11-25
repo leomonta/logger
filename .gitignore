@@ -1,3 +1,5 @@
 rename
 bin/
 obj/
+.cache
+compile_commands.json

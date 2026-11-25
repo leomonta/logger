@@ -8,14 +8,16 @@ extern "C" { // Prevents name mangling of functions
 #	define LLOG_FORMAT __attribute__((format(printf, 5, 6)))
 #	define LLOG_LINE   __LINE__
 #	define LLOG_FILE   __FILE_NAME__
+#	define LLOG_FUNC   __PRETTY_FUNCTION__
 #else
 #	define LLOG_FORMAT
 #	define LLOG_LINE 0
 #	define LLOG_FILE ""
+#	define LLOG_FUNC __func__
 #endif
 
 // quick macro to use the automatic __FILE__ and __LINE__ gcc defines
-#define llog(level, format, ...) logger(level, LLOG_FILE, LLOG_LINE, __PRETTY_FUNCTION__, format __VA_OPT__(, ) __VA_ARGS__)
+#define llog(level, format, ...) logger(level, LLOG_FILE, LLOG_LINE, LLOG_FUNC, format __VA_OPT__(, ) __VA_ARGS__)
 
 #define LLOG_BUFFER_SIZE 8192
 
@@ -30,7 +32,7 @@ typedef enum : char {
 /**
  * A pluggable function to use inside the logging process
  *
- * The user should be mindful that the buffer is `LLOG_BUFFER_SIZE` bytes long and that shuold not be overridden.
+ * The user should be mindful that the buffer is `LLOG_BUFFER_SIZE` bytes long and that should not be overwritten.
  * Regardless the printed amount will be `LLOG_BUFFER_SIZE`
  *
  * @param[in] buffer the start of char buffer that will be printed at the end of the process
@@ -40,6 +42,14 @@ typedef enum : char {
  * @return if the operation was successful, disregarded for now
  */
 typedef bool (*plug_print_func)(char *buffer, unsigned long *count);
+
+/**
+ * specifies whether to print with colors or not,
+ * by default the use of color is dependent on the result of `isatty`
+ *
+ * @param do_color whether to use colors while printing or not
+ */
+void set_color(bool do_color);
 
 /**
  * Set the local log_level variable to prevent any log message 'lower' than the one selected from being printed
